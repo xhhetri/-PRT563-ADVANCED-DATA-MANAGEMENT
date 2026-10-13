@@ -1,0 +1,9 @@
+ProductID,ProductName,Description,Category,UnitPrice,ReorderLevel
+1,Wireless Mouse,Wireless optical mouse,Electronics,29.95,20
+2,USB-C Cable,1 metre USB-C charging cable,Electronics,14.95,30
+3,Laptop Stand,Adjustable aluminium laptop stand,Accessories,49.95,15
+4,Notebook,A4 ruled notebook,Stationery,6.5,40
+5,Desk Lamp,LED adjustable desk lamp,Home Office,39.95,10
+6,Keyboard,USB wireless keyboard,Electronics,44.95,15
+7,Water Bottle,750ml reusable water bottle,Home,19.95,20
+8,Backpack,Everyday laptop backpack,Accessories,59.95,10

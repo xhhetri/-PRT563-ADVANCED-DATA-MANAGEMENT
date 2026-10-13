@@ -1,0 +1,6 @@
+CustomerID,FirstName,LastName,Email,Phone,Address,City,Postcode
+1,Emily,Nguyen,emily.nguyen@example.com,0411000101,12 King Street,Sydney,2000
+2,James,Patel,james.patel@example.com,0411000102,48 Macquarie Street,Parramatta,2150
+3,Olivia,Brown,olivia.brown@example.com,0411000103,7 Railway Parade,Blacktown,2148
+4,Liam,Kumar,liam.kumar@example.com,0411000104,21 Northumberland Street,Liverpool,2170
+5,Chloe,Martin,chloe.martin@example.com,0411000105,3 Victoria Avenue,Chatswood,2067

@@ -1,0 +1,7 @@
+InvoiceID,SalesOrderID,InvoiceDate,TotalAmount,Status
+1,1,2026-08-15,74.85,Paid
+2,2,2026-08-18,99.9,Paid
+3,3,2026-08-22,64.9,Unpaid
+4,4,2026-08-25,79.9,Paid
+5,5,2026-09-01,104.9,Unpaid
+6,6,2026-09-05,89.9,Partially Paid

@@ -1,0 +1,5 @@
+SupplierID,SupplierName,ContactName,Email,Phone,Address,City,Postcode
+1,TechSource Australia,Daniel Lee,daniel@techsource.com.au,0291112233,15 Market Street,Sydney,2000
+2,Office Supply Co,Sarah Green,sarah@officesupply.com.au,0292223344,28 Church Street,Parramatta,2150
+3,Home Essentials Pty Ltd,Michael Chen,michael@homeessentials.com.au,0293334455,9 Pacific Highway,Chatswood,2067
+4,Metro Distribution,Anna Wilson,anna@metrodistribution.com.au,0294445566,42 George Street,Liverpool,2170

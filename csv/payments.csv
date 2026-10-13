@@ -1,0 +1,5 @@
+PaymentID,InvoiceID,PaymentDate,Amount,PaymentMethod,Status
+1,1,2026-08-15,74.85,Credit Card,Completed
+2,2,2026-08-18,99.9,Debit Card,Completed
+3,4,2026-08-25,79.9,PayPal,Completed
+4,6,2026-09-06,40.0,Credit Card,Completed

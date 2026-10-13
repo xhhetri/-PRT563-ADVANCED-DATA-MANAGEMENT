@@ -1,0 +1,7 @@
+DeliveryID,SalesOrderID,DeliveryDate,Carrier,TrackingNumber,Status
+1,1,2026-08-17,Australia Post,AUS100001,Delivered
+2,2,2026-08-20,Australia Post,AUS100002,Delivered
+3,3,2026-08-25,StarTrack,ST200001,In Transit
+4,4,2026-08-27,StarTrack,ST200002,Delivered
+5,5,,Australia Post,AUS100005,Pending
+6,6,2026-09-08,StarTrack,ST200006,In Transit

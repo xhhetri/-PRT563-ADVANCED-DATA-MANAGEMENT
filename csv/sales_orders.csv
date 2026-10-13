@@ -1,0 +1,7 @@
+SalesOrderID,CustomerID,OrderDate,Status,TotalAmount
+1,1,2026-08-15,Completed,74.85
+2,2,2026-08-18,Completed,99.9
+3,3,2026-08-22,Processing,64.9
+4,4,2026-08-25,Completed,79.9
+5,5,2026-09-01,Pending,104.9
+6,1,2026-09-05,Processing,89.9
