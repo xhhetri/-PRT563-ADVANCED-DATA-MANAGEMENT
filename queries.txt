@@ -1,0 +1,125 @@
+// =====================================================================
+// PRT563 Advanced Data Management - Assessment 4 (Sydney Group 11)
+// File: queries.txt  (Task 3 - Graph database queries)
+// Run after import.txt. Queries increase in complexity from 1 to 4.
+// =====================================================================
+
+
+// ---------------------------------------------------------------------
+// QUERY 1 (basic) - Low-stock alert by location
+// Scenario: The inventory manager wants every product/location pair whose
+// quantity on hand is below the product's reorder level, with the
+// shortfall, so that replenishment can be prioritised.
+// Features: single-hop pattern, filter on a RELATIONSHIP property
+// compared with a NODE property, computed column, ordering.
+// ---------------------------------------------------------------------
+MATCH (p:Product)-[st:STOCKED_AT]->(l:Location)
+WHERE st.quantityOnHand < p.reorderLevel
+RETURN p.name                            AS product,
+       l.name                            AS location,
+       st.quantityOnHand                 AS onHand,
+       p.reorderLevel                    AS reorderLevel,
+       p.reorderLevel - st.quantityOnHand AS shortfall
+ORDER BY shortfall DESC, product;
+
+
+// ---------------------------------------------------------------------
+// QUERY 2 (intermediate) - Outstanding receivables with delivery status
+// Scenario: The finance team wants every invoice that still has money
+// owing, showing the customer, how much has been paid, the balance, how
+// many days the invoice has been open (as at 30 Sep 2026) and whether the
+// goods have been delivered - so they can decide who to follow up first.
+// Features: 3-hop traversal, OPTIONAL MATCH, aggregation with coalesce,
+// date arithmetic, post-aggregation filtering.
+// ---------------------------------------------------------------------
+MATCH (c:Customer)-[:PLACED]->(so:SalesOrder)-[:INVOICED_AS]->(inv:Invoice)
+OPTIONAL MATCH (pay:Payment)-[:PAYS]->(inv)
+WHERE pay.status = 'Completed'
+WITH c, so, inv, coalesce(sum(pay.amount), 0) AS paid
+WITH c, so, inv, paid, round(inv.totalAmount - paid, 2) AS outstanding
+WHERE outstanding > 0
+OPTIONAL MATCH (so)-[:SHIPPED_BY]->(d:Delivery)
+RETURN c.name                         AS customer,
+       so.salesOrderId                AS salesOrder,
+       inv.invoiceId                  AS invoice,
+       inv.status                     AS invoiceStatus,
+       inv.totalAmount                AS invoiced,
+       paid,
+       outstanding,
+       d.status                       AS deliveryStatus,
+       duration.inDays(inv.invoiceDate, date('2026-09-30')).days AS daysOpen
+ORDER BY outstanding DESC;
+
+
+// ---------------------------------------------------------------------
+// QUERY 3 (advanced) - End-to-end supply chain and gross margin
+// Scenario: Management wants, for every product that has been sold, the
+// suppliers it was bought from, the customers who bought it, units sold,
+// revenue, weighted average purchase cost and gross profit/margin - i.e.
+// the full Supplier -> PurchaseOrder -> Product -> SalesOrder -> Customer
+// chain in one result.
+// Features: 4-hop path across both sides of the business, two
+// aggregation stages, collect(DISTINCT), weighted average, ratio.
+// (In SQL this needs 6 joins and two GROUP BY sub-queries.)
+// ---------------------------------------------------------------------
+MATCH (c:Customer)-[:PLACED]->(so:SalesOrder)-[ci:CONTAINS]->(p:Product)
+WITH p,
+     collect(DISTINCT c.name)          AS customers,
+     sum(ci.quantity)                  AS unitsSold,
+     sum(ci.quantity * ci.unitPrice)   AS revenue
+MATCH (s:Supplier)<-[:PLACED_WITH]-(po:PurchaseOrder)-[oi:ORDERS]->(p)
+WITH p, customers, unitsSold, revenue,
+     collect(DISTINCT s.name)                          AS suppliers,
+     sum(oi.quantity * oi.unitCost) / sum(oi.quantity) AS avgUnitCost
+WITH p, customers, unitsSold, revenue, suppliers, avgUnitCost,
+     revenue - unitsSold * avgUnitCost AS grossProfit
+RETURN p.name                                AS product,
+       suppliers,
+       customers,
+       unitsSold,
+       round(revenue, 2)                     AS revenue,
+       round(avgUnitCost, 2)                 AS avgUnitCost,
+       round(grossProfit, 2)                 AS grossProfit,
+       round(100 * grossProfit / revenue, 1) AS marginPct
+ORDER BY grossProfit DESC;
+
+
+// ---------------------------------------------------------------------
+// QUERY 4 (complex) - In-stock product recommendations per customer
+// Scenario: Marketing wants to recommend products each customer has NOT
+// yet bought, scored by (a) collaborative filtering - "customers who
+// bought what you bought also bought this" (weight 2) and (b) category
+// affinity - products in a category the customer already buys from
+// (weight 1). Only products with stock in a retail store are suggested.
+// Features: list membership, two OPTIONAL MATCH scoring passes,
+// multi-hop collaborative pattern, label-based specialisation (:Store),
+// weighted scoring, ranking and top-N per customer.
+// ---------------------------------------------------------------------
+MATCH (c:Customer)-[:BOUGHT]->(owned:Product)
+WITH c, collect(owned) AS ownedProducts
+MATCH (rec:Product)
+WHERE NOT rec IN ownedProducts
+OPTIONAL MATCH (c)-[:BOUGHT]->(:Product)<-[:BOUGHT]-(peer:Customer)-[:BOUGHT]->(rec)
+WHERE peer <> c
+WITH c, ownedProducts, rec, count(DISTINCT peer) AS peerScore
+OPTIONAL MATCH (rec)-[:IN_CATEGORY]->(:Category)<-[:IN_CATEGORY]-(same:Product)
+WHERE same IN ownedProducts
+WITH c, rec, peerScore, count(DISTINCT same) AS categoryScore
+WHERE peerScore + categoryScore > 0
+MATCH (rec)-[st:STOCKED_AT]->(:Store)
+WITH c, rec, peerScore, categoryScore, sum(st.quantityOnHand) AS storeStock
+WHERE storeStock > 0
+WITH c, rec, peerScore, categoryScore, storeStock,
+     2 * peerScore + categoryScore AS score
+ORDER BY c.name, score DESC, storeStock DESC
+WITH c, collect({product: rec.name, peerScore: peerScore,
+                 categoryScore: categoryScore, score: score,
+                 storeStock: storeStock})[0..3] AS top3
+UNWIND top3 AS r
+RETURN c.name          AS customer,
+       r.product       AS recommendedProduct,
+       r.peerScore     AS peerScore,
+       r.categoryScore AS categoryScore,
+       r.score         AS score,
+       r.storeStock    AS unitsInStores
+ORDER BY customer, score DESC, unitsInStores DESC;
