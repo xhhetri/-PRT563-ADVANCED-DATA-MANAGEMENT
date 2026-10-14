@@ -1,0 +1,134 @@
+// PRT563 Advanced Data Management - Assessment 4 (Sydney Group 11)
+// Tasks 4 and 5 - Graph Data Science Library
+
+// TASK 4 – CENTRALITY
+
+//  Undirected Supplier-Product-Customer graph
+
+CALL gds.graph.drop('supplyDemand', false) YIELD graphName;
+
+CALL gds.graph.project(
+  'supplyDemand',
+  ['Supplier', 'Product', 'Customer'],
+  {
+    SUPPLIES: {orientation: 'UNDIRECTED'},
+    BOUGHT:   {orientation: 'UNDIRECTED'}
+  }
+)
+YIELD graphName, nodeCount, relationshipCount;
+
+// Memory estimate 
+
+CALL gds.betweenness.stream.estimate('supplyDemand', {})
+YIELD requiredMemory;
+
+// Degree centrality 
+
+CALL gds.degree.stream('supplyDemand')
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).name AS node,
+       labels(gds.util.asNode(nodeId))[0] AS type,
+       score AS degree
+ORDER BY degree DESC, node;
+
+// PageRank 
+
+CALL gds.pageRank.stream('supplyDemand', {maxIterations: 20, dampingFactor: 0.85})
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).name AS node,
+       labels(gds.util.asNode(nodeId))[0] AS type,
+       round(score, 4) AS pageRank
+ORDER BY pageRank DESC, node;
+
+// Betweenness centrality 
+
+CALL gds.betweenness.stream('supplyDemand')
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).name AS node,
+       labels(gds.util.asNode(nodeId))[0] AS type,
+       round(score, 2) AS betweenness
+ORDER BY betweenness DESC, node;
+
+// Closeness centrality 
+CALL gds.closeness.stream('supplyDemand')
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).name AS node,
+       labels(gds.util.asNode(nodeId))[0] AS type,
+       round(score, 4) AS closeness
+ORDER BY closeness DESC, node; 
+
+
+
+
+// TASK 5 – SIMILARITY
+
+//  Bipartite "product profile" graph. 
+
+CALL gds.graph.drop('productProfile', false) YIELD graphName;
+
+CALL gds.graph.project(
+  'productProfile',
+  ['Product', 'Category', 'Supplier', 'Customer'],
+  {
+    IN_CATEGORY: {orientation: 'NATURAL'},   // Product -> Category
+    SUPPLIES:    {orientation: 'REVERSE'},   // Product -> Supplier
+    BOUGHT:      {orientation: 'REVERSE'}    // Product -> Customer
+  }
+)
+YIELD graphName, nodeCount, relationshipCount;
+
+// Node Similarity - Jaccard 
+
+CALL gds.nodeSimilarity.stream('productProfile', {topK: 3})
+YIELD node1, node2, similarity
+RETURN gds.util.asNode(node1).name AS product,
+       gds.util.asNode(node2).name AS similarProduct,
+       round(similarity, 4) AS jaccard
+ORDER BY product, jaccard DESC;
+
+// Experiment - compare the three Node Similarity metrics
+
+CALL gds.nodeSimilarity.stream('productProfile', {topK: 3, similarityMetric: 'OVERLAP'})
+YIELD node1, node2, similarity
+RETURN gds.util.asNode(node1).name AS product,
+       gds.util.asNode(node2).name AS similarProduct,
+       round(similarity, 4) AS overlap
+ORDER BY product, overlap DESC;
+
+CALL gds.nodeSimilarity.stream('productProfile', {topK: 3, similarityMetric: 'COSINE'})
+YIELD node1, node2, similarity
+RETURN gds.util.asNode(node1).name AS product,
+       gds.util.asNode(node2).name AS similarProduct,
+       round(similarity, 4) AS cosine
+ORDER BY product, cosine DESC;
+
+
+//  Write the Jaccard results as SIMILAR_TO relationships
+
+MATCH ()-[r:SIMILAR_TO]->() DELETE r;
+
+CALL gds.nodeSimilarity.write('productProfile', {
+  topK: 3,
+  similarityCutoff: 0.3,
+  writeRelationshipType: 'SIMILAR_TO',
+  writeProperty: 'score'
+})
+YIELD nodesCompared, relationshipsWritten;
+
+// Business action: alternative products for low-stock lines, at the
+// SAME store, where the alternative itself is above its reorder level
+
+MATCH (p:Product)-[st:STOCKED_AT]->(store:Store)
+WHERE st.quantityOnHand < p.reorderLevel
+MATCH (p)-[sim:SIMILAR_TO]->(alt:Product)-[ast:STOCKED_AT]->(store)
+WHERE ast.quantityOnHand >= alt.reorderLevel
+RETURN store.name AS store,
+       p.name AS lowStockProduct, st.quantityOnHand AS onHand,
+       alt.name AS alternative, round(sim.score, 4) AS similarity,
+       ast.quantityOnHand AS alternativeOnHand
+ORDER BY store, similarity DESC;
+
+// Clean up in-memory projections
+
+CALL gds.graph.drop('supplyDemand', false)   YIELD graphName;
+CALL gds.graph.drop('productProfile', false) YIELD graphName;
