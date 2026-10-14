@@ -3,10 +3,11 @@
 // Retail Inventory and Order Management: relational -> Neo4j migration
 // File: import.txt  (Task 2 - Graph database implementation)
 //
-// Target: Neo4j 5.x (Desktop, Server or Aura). Tested syntax: Cypher 5.
-// Place all .csv files in the database's "import" folder (Neo4j Desktop:
-// ... > Open folder > Import). Run each statement in order in Neo4j
-// Browser (statements are separated by semicolons).
+// AURA VERSION - loads the CSV files directly from the group's public
+// GitHub repository, so nothing needs to be uploaded to Aura.
+// CSV source: https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/
+// Run in the Aura console Query tab (statements separated by semicolons).
+// For Neo4j Desktop use import.txt (file:/// paths) instead.
 // =====================================================================
 
 
@@ -95,7 +96,7 @@ SHOW INDEXES;
 // ---------------------------------------------------------------------
 
 // 3.1 Customer  (customers.csv -> CUSTOMER)
-LOAD CSV WITH HEADERS FROM 'file:///customers.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/customers.csv' AS row
 MERGE (c:Customer {customerId: toInteger(row.CustomerID)})
 SET c.firstName = row.FirstName,
     c.lastName  = row.LastName,
@@ -107,13 +108,13 @@ SET c.firstName = row.FirstName,
     c.postcode  = row.Postcode;
 
 // 3.2 Category  (derived from PRODUCT.Category - see report section 2.2)
-LOAD CSV WITH HEADERS FROM 'file:///products.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/products.csv' AS row
 WITH DISTINCT row.Category AS categoryName
 WHERE categoryName IS NOT NULL
 MERGE (:Category {name: categoryName});
 
 // 3.3 Product  (products.csv -> PRODUCT)
-LOAD CSV WITH HEADERS FROM 'file:///products.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/products.csv' AS row
 MERGE (p:Product {productId: toInteger(row.ProductID)})
 SET p.name         = row.ProductName,
     p.description  = row.Description,
@@ -121,7 +122,7 @@ SET p.name         = row.ProductName,
     p.reorderLevel = toInteger(row.ReorderLevel);
 
 // 3.4 Supplier  (suppliers.csv -> SUPPLIER)
-LOAD CSV WITH HEADERS FROM 'file:///suppliers.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/suppliers.csv' AS row
 MERGE (s:Supplier {supplierId: toInteger(row.SupplierID)})
 SET s.name        = row.SupplierName,
     s.contactName = row.ContactName,
@@ -133,7 +134,7 @@ SET s.name        = row.SupplierName,
 
 // 3.5 Location  (locations.csv -> LOCATION)
 // The EER specialisation (Store / Warehouse) becomes an extra node label.
-LOAD CSV WITH HEADERS FROM 'file:///locations.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/locations.csv' AS row
 MERGE (l:Location {locationId: toInteger(row.LocationID)})
 SET l.name         = row.LocationName,
     l.locationType = row.LocationType,
@@ -144,14 +145,14 @@ FOREACH (_ IN CASE WHEN row.LocationType = 'Store'     THEN [1] ELSE [] END | SE
 FOREACH (_ IN CASE WHEN row.LocationType = 'Warehouse' THEN [1] ELSE [] END | SET l:Warehouse);
 
 // 3.6 SalesOrder  (sales_orders.csv -> SALES_ORDER)
-LOAD CSV WITH HEADERS FROM 'file:///sales_orders.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/sales_orders.csv' AS row
 MERGE (so:SalesOrder {salesOrderId: toInteger(row.SalesOrderID)})
 SET so.orderDate   = date(row.OrderDate),
     so.status      = row.Status,
     so.totalAmount = toFloat(row.TotalAmount);
 
 // 3.7 PurchaseOrder  (purchase_orders.csv -> PURCHASE_ORDER)
-LOAD CSV WITH HEADERS FROM 'file:///purchase_orders.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/purchase_orders.csv' AS row
 MERGE (po:PurchaseOrder {purchaseOrderId: toInteger(row.PurchaseOrderID)})
 SET po.orderDate    = date(row.OrderDate),
     po.expectedDate = CASE WHEN row.ExpectedDate IS NULL OR row.ExpectedDate = ''
@@ -160,14 +161,14 @@ SET po.orderDate    = date(row.OrderDate),
     po.totalAmount  = toFloat(row.TotalAmount);
 
 // 3.8 Invoice  (invoices.csv -> INVOICE)
-LOAD CSV WITH HEADERS FROM 'file:///invoices.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/invoices.csv' AS row
 MERGE (i:Invoice {invoiceId: toInteger(row.InvoiceID)})
 SET i.invoiceDate = date(row.InvoiceDate),
     i.totalAmount = toFloat(row.TotalAmount),
     i.status      = row.Status;
 
 // 3.9 Payment  (payments.csv -> PAYMENT)
-LOAD CSV WITH HEADERS FROM 'file:///payments.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/payments.csv' AS row
 MERGE (pay:Payment {paymentId: toInteger(row.PaymentID)})
 SET pay.paymentDate   = date(row.PaymentDate),
     pay.amount        = toFloat(row.Amount),
@@ -176,7 +177,7 @@ SET pay.paymentDate   = date(row.PaymentDate),
 
 // 3.10 Delivery  (deliveries.csv -> DELIVERY)
 // DeliveryDate is NULL for pending deliveries, so it is only set if present.
-LOAD CSV WITH HEADERS FROM 'file:///deliveries.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/deliveries.csv' AS row
 MERGE (d:Delivery {deliveryId: toInteger(row.DeliveryID)})
 SET d.deliveryDate   = CASE WHEN row.DeliveryDate IS NULL OR row.DeliveryDate = ''
                             THEN null ELSE date(row.DeliveryDate) END,
@@ -193,19 +194,19 @@ SET d.deliveryDate   = CASE WHEN row.DeliveryDate IS NULL OR row.DeliveryDate = 
 // ---------------------------------------------------------------------
 
 // 4.1 (:Product)-[:IN_CATEGORY]->(:Category)
-LOAD CSV WITH HEADERS FROM 'file:///products.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/products.csv' AS row
 MATCH (p:Product {productId: toInteger(row.ProductID)})
 MATCH (cat:Category {name: row.Category})
 MERGE (p)-[:IN_CATEGORY]->(cat);
 
 // 4.2 (:Customer)-[:PLACED]->(:SalesOrder)      [SALES_ORDER.CustomerID FK]
-LOAD CSV WITH HEADERS FROM 'file:///sales_orders.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/sales_orders.csv' AS row
 MATCH (c:Customer {customerId: toInteger(row.CustomerID)})
 MATCH (so:SalesOrder {salesOrderId: toInteger(row.SalesOrderID)})
 MERGE (c)-[:PLACED]->(so);
 
 // 4.3 (:SalesOrder)-[:CONTAINS]->(:Product)       [SALES_ORDER_ITEM]
-LOAD CSV WITH HEADERS FROM 'file:///sales_order_items.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/sales_order_items.csv' AS row
 MATCH (so:SalesOrder {salesOrderId: toInteger(row.SalesOrderID)})
 MATCH (p:Product {productId: toInteger(row.ProductID)})
 MERGE (so)-[ci:CONTAINS]->(p)
@@ -214,13 +215,13 @@ SET ci.quantity  = toInteger(row.Quantity),
     ci.lineTotal = round(toInteger(row.Quantity) * toFloat(row.UnitPrice), 2);
 
 // 4.4 (:PurchaseOrder)-[:PLACED_WITH]->(:Supplier) [PURCHASE_ORDER.SupplierID FK]
-LOAD CSV WITH HEADERS FROM 'file:///purchase_orders.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/purchase_orders.csv' AS row
 MATCH (po:PurchaseOrder {purchaseOrderId: toInteger(row.PurchaseOrderID)})
 MATCH (s:Supplier {supplierId: toInteger(row.SupplierID)})
 MERGE (po)-[:PLACED_WITH]->(s);
 
 // 4.5 (:PurchaseOrder)-[:ORDERS]->(:Product)      [PURCHASE_ORDER_ITEM]
-LOAD CSV WITH HEADERS FROM 'file:///purchase_order_items.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/purchase_order_items.csv' AS row
 MATCH (po:PurchaseOrder {purchaseOrderId: toInteger(row.PurchaseOrderID)})
 MATCH (p:Product {productId: toInteger(row.ProductID)})
 MERGE (po)-[oi:ORDERS]->(p)
@@ -229,7 +230,7 @@ SET oi.quantity  = toInteger(row.Quantity),
     oi.lineTotal = round(toInteger(row.Quantity) * toFloat(row.UnitCost), 2);
 
 // 4.6 (:Product)-[:STOCKED_AT]->(:Location)       [STOCK]
-LOAD CSV WITH HEADERS FROM 'file:///stock.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/stock.csv' AS row
 MATCH (p:Product {productId: toInteger(row.ProductID)})
 MATCH (l:Location {locationId: toInteger(row.LocationID)})
 MERGE (p)-[st:STOCKED_AT]->(l)
@@ -237,19 +238,19 @@ SET st.quantityOnHand = toInteger(row.QuantityOnHand),
     st.lastUpdated    = date(row.LastUpdated);
 
 // 4.7 (:SalesOrder)-[:INVOICED_AS]->(:Invoice)    [INVOICE.SalesOrderID FK, 1:0..1]
-LOAD CSV WITH HEADERS FROM 'file:///invoices.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/invoices.csv' AS row
 MATCH (so:SalesOrder {salesOrderId: toInteger(row.SalesOrderID)})
 MATCH (i:Invoice {invoiceId: toInteger(row.InvoiceID)})
 MERGE (so)-[:INVOICED_AS]->(i);
 
 // 4.8 (:Payment)-[:PAYS]->(:Invoice)              [PAYMENT.InvoiceID FK]
-LOAD CSV WITH HEADERS FROM 'file:///payments.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/payments.csv' AS row
 MATCH (pay:Payment {paymentId: toInteger(row.PaymentID)})
 MATCH (i:Invoice {invoiceId: toInteger(row.InvoiceID)})
 MERGE (pay)-[:PAYS]->(i);
 
 // 4.9 (:SalesOrder)-[:SHIPPED_BY]->(:Delivery)    [DELIVERY.SalesOrderID FK]
-LOAD CSV WITH HEADERS FROM 'file:///deliveries.csv' AS row
+LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/deliveries.csv' AS row
 MATCH (so:SalesOrder {salesOrderId: toInteger(row.SalesOrderID)})
 MATCH (d:Delivery {deliveryId: toInteger(row.DeliveryID)})
 MERGE (so)-[:SHIPPED_BY]->(d);
@@ -304,7 +305,7 @@ CALL db.schema.visualization();
 // For large (Big Data) CSV files, wrap each LOAD CSV in batched
 // transactions so memory stays bounded, e.g. (run with :auto in Browser):
 //
-// :auto LOAD CSV WITH HEADERS FROM 'file:///stock.csv' AS row
+// :auto LOAD CSV WITH HEADERS FROM 'https://raw.githubusercontent.com/xhhetri/-PRT563-ADVANCED-DATA-MANAGEMENT/refs/heads/main/csv/stock.csv' AS row
 // CALL (row) {
 //   MATCH (p:Product {productId: toInteger(row.ProductID)})
 //   MATCH (l:Location {locationId: toInteger(row.LocationID)})
